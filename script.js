@@ -344,7 +344,7 @@ const initGallery = () => {
   
   // Image array - replace these with your actual image paths
   const travelImages = [
-    'travel-images/248BBBC8-BF8A-4285-9BBE-DE96EFA37645.jpg',
+    'travel-images/IMG_7428.jpg',
     'travel-images/3092FFB1-5FDE-4AA9-8D31-BF1A53290291.jpg',
     'travel-images/A4354952-2B24-4141-90CE-1FD091E12395.jpg',
     'travel-images/E69D841A-A2B0-4DAC-9FE3-1333A063D448.jpg',
