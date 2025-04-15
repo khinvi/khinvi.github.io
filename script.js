@@ -65,7 +65,7 @@ const setTheme = (bodyClass, btnClass) => {
   localStorage.setItem('portfolio-btn-theme', btnClass);
 };
 
-// Toggle between light and dark themes
+// loading between light and dark themes
 const toggleTheme = () => {
   if (isDark()) {
     setTheme('light', 'fa-moon');
@@ -338,7 +338,7 @@ const initGallery = () => {
   loadingElement.className = 'gallery__loading';
   loadingElement.innerHTML = `
     <div class="gallery__loading-spinner"></div>
-    <div class="gallery__loading-text">Loading your adventures...</div>
+    <div class="gallery__loading-text">Loading adventures...</div>
   `;
   gridContainer.parentElement.appendChild(loadingElement);
   
