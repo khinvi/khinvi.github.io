@@ -316,6 +316,13 @@ ul {
   box-shadow: var(--shadow-md);
 }
 
+/* Remove the fixed theme toggle on mobile */
+@media (max-width: 991px) {
+  .theme-toggle-fixed {
+    display: none; /* Hide the fixed theme toggle on mobile */
+  }
+}
+
 /*===============
   Header & Navigation - Desktop
 ===============*/
@@ -1057,30 +1064,10 @@ ul {
   box-shadow: var(--shadow-md);
 }
 
-.timeline-item:nth-child(odd) .timeline-item__content::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  right: -2rem;
-  width: 2rem;
-  height: 2rem;
-  background-color: var(--clr-bg);
-  transform: rotate(45deg) translateY(-50%);
-  box-shadow: 3px -3px 10px rgba(0, 0, 0, 0.1);
-  z-index: -1;
-}
-
+/* Remove diamond shapes from timeline */
+.timeline-item:nth-child(odd) .timeline-item__content::after,
 .timeline-item:nth-child(even) .timeline-item__content::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: -2rem;
-  width: 2rem;
-  height: 2rem;
-  background-color: var(--clr-bg);
-  transform: rotate(45deg) translateY(-50%);
-  box-shadow: -3px 3px 10px rgba(0, 0, 0, 0.1);
-  z-index: -1;
+  display: none; /* Remove the diamond connectors */
 }
 
 .timeline-item__icon-container {
@@ -1256,10 +1243,12 @@ ul {
   flex: 1;
 }
 
+/* Center the skills tags in project cards */
 .project-card__tags {
   display: flex;
   flex-wrap: wrap;
   margin-bottom: 2rem;
+  justify-content: center; /* Center the tags */
 }
 
 .project-card__links {
@@ -1497,10 +1486,13 @@ ul {
   visibility: visible;
 }
 
+/* Update gallery fullscreen positioning */
 .gallery__fullscreen-content {
   position: relative;
   max-width: 90%;
   max-height: 90%;
+  display: flex;
+  justify-content: center; /* Center the image horizontally */
 }
 
 .gallery__fullscreen-img {
@@ -1509,6 +1501,7 @@ ul {
   border-radius: var(--border-radius);
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
   object-fit: contain;
+  margin: 0 auto; /* Center horizontally */
 }
 
 .gallery__fullscreen-close,

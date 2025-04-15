@@ -31,10 +31,12 @@ const addThemeClass = (bodyClass, btnClass) => {
   body.classList.add(bodyClass);
   btnThemeDesktop.classList.remove('fa-moon', 'fa-sun');
   btnThemeMobile.classList.remove('fa-moon', 'fa-sun');
-  btnThemeFixed.classList.remove('fa-moon', 'fa-sun');
+  if (btnThemeFixed) {
+    btnThemeFixed.classList.remove('fa-moon', 'fa-sun');
+    btnThemeFixed.classList.add(btnClass);
+  }
   btnThemeDesktop.classList.add(btnClass);
   btnThemeMobile.classList.add(btnClass);
-  btnThemeFixed.classList.add(btnClass);
 };
 
 // Get theme from local storage or set default
@@ -216,6 +218,8 @@ const createBackgroundShapes = () => {
   const heroSection = document.querySelector('.home-hero');
   const numShapes = 5;
   
+  if (!heroSection) return;
+  
   for (let i = 0; i < numShapes; i++) {
     const shape = document.createElement('div');
     shape.classList.add('bg-shape');
@@ -294,7 +298,29 @@ const addBackgroundShapesStyles = () => {
   document.head.appendChild(style);
 };
 
+// Enhanced fullscreen gallery positioning
+const enhanceGalleryFullscreen = () => {
+  const fullscreenView = document.querySelector('.gallery__fullscreen');
+  const fullscreenImg = document.querySelector('.gallery__fullscreen-img');
+  
+  if (fullscreenImg) {
+    // Center the image by default
+    fullscreenImg.style.margin = '0 auto';
+    
+    // Adjust image orientation based on dimensions
+    fullscreenImg.addEventListener('load', () => {
+      // Reset styles
+      fullscreenImg.style.maxWidth = '100%';
+      fullscreenImg.style.maxHeight = '90vh';
+      
+      // Center the image
+      fullscreenImg.style.margin = '0 auto';
+    });
+  }
+};
+
 // Travel Gallery Functionality
+// Optimized gallery code for faster image loading
 const initGallery = () => {
   // Get DOM elements
   const gridContainer = document.querySelector('.gallery__grid-container');
@@ -304,6 +330,8 @@ const initGallery = () => {
   const fullscreenClose = document.querySelector('.gallery__fullscreen-close');
   const fullscreenPrev = document.querySelector('.gallery__fullscreen-prev');
   const fullscreenNext = document.querySelector('.gallery__fullscreen-next');
+  
+  if (!gridContainer) return;
   
   // Create loading indicator
   const loadingElement = document.createElement('div');
@@ -373,7 +401,7 @@ const initGallery = () => {
     'travel-images/IMG_8750.JPG',
     'travel-images/IMG_8839 2.JPG',
     'travel-images/IMG_8870 2.JPG',
-    'travel-images/IMG_8920 2.JPG',
+    'travel-images/IMG_7605.jpg',
     'travel-images/IMG_8989 3.JPG',
     'travel-images/IMG_9072.JPG'
   ];
@@ -385,21 +413,45 @@ const initGallery = () => {
   // Current fullscreen image index
   let currentImageIndex = 0;
   
-  // Generate grid layout
+  // Only load the images that are actually visible in the grid initially
+  // This dramatically improves loading performance
   const generateGrid = () => {
     gridContainer.innerHTML = '';
     
+    // OPTIMIZATION 1: Only load the first 18 images initially (or fewer if there are less)
+    const initialLoadCount = Math.min(18, currentImages.length);
+    const imagesToLoad = currentImages.slice(0, initialLoadCount);
+    let loadedCount = 0;
+    
+    // Create all grid items with placeholders
     currentImages.forEach((src, index) => {
       const gridItem = document.createElement('div');
       gridItem.className = 'gallery__grid-item';
       
       const img = document.createElement('img');
-      img.src = src;
-      img.alt = `Travel photo ${index + 1}`;
-      img.setAttribute('data-index', index);
-      img.addEventListener('load', () => {
-        checkImagesLoaded();
-      });
+      if (index < initialLoadCount) {
+        // Load initial visible images
+        img.src = src;
+        img.alt = `Travel photo ${index + 1}`;
+        img.setAttribute('data-index', index);
+        img.addEventListener('load', () => {
+          loadedCount++;
+          if (loadedCount >= initialLoadCount) {
+            // Hide the loading indicator once initial set is loaded
+            loadingElement.style.opacity = '0';
+            setTimeout(() => {
+              loadingElement.style.display = 'none';
+            }, 300);
+          }
+        });
+      } else {
+        // Use data-src for lazy loading of additional images
+        img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"%3E%3C/svg%3E';
+        img.alt = `Travel photo ${index + 1}`;
+        img.setAttribute('data-src', src);
+        img.setAttribute('data-index', index);
+        img.setAttribute('loading', 'lazy');
+      }
       
       gridItem.appendChild(img);
       gridItem.addEventListener('click', () => {
@@ -408,11 +460,52 @@ const initGallery = () => {
       
       gridContainer.appendChild(gridItem);
     });
+    
+    // OPTIMIZATION 2: Set up intersection observer to lazy load remaining images
+    if ('IntersectionObserver' in window) {
+      const lazyImageObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const lazyImage = entry.target;
+            if (lazyImage.dataset.src) {
+              lazyImage.src = lazyImage.dataset.src;
+              lazyImage.removeAttribute('data-src');
+              observer.unobserve(lazyImage);
+            }
+          }
+        });
+      });
+
+      document.querySelectorAll('.gallery__grid-item img[data-src]').forEach(lazyImage => {
+        lazyImageObserver.observe(lazyImage);
+      });
+    } else {
+      // Fallback for browsers without intersection observer
+      document.querySelectorAll('.gallery__grid-item img[data-src]').forEach(img => {
+        img.src = img.getAttribute('data-src');
+        img.removeAttribute('data-src');
+      });
+    }
   };
   
-  // Shuffle images randomly
+  // OPTIMIZATION 3: Preload adjacent images when in fullscreen view
+  const preloadAdjacentImages = (index) => {
+    const nextIndex = (index + 1) % currentImages.length;
+    const prevIndex = (index - 1 + currentImages.length) % currentImages.length;
+    
+    // Preload next and previous images
+    const nextImage = new Image();
+    nextImage.src = currentImages[nextIndex];
+    
+    const prevImage = new Image();
+    prevImage.src = currentImages[prevIndex];
+  };
+  
+  // Shuffle images randomly but keep initial load count small
   randomButton.addEventListener('click', () => {
     shuffleArray(currentImages);
+    loadingElement.style.display = 'flex';
+    loadingElement.style.opacity = '1';
     generateGrid();
   });
   
@@ -424,8 +517,14 @@ const initGallery = () => {
     fullscreenView.classList.add('active');
     document.body.style.overflow = 'hidden'; // Prevent scrolling
     
+    // Preload adjacent images for smoother navigation
+    preloadAdjacentImages(index);
+    
     // Add particle effect
     createParticleEffect();
+    
+    // Call our enhanced positioning function
+    enhanceGalleryFullscreen();
   };
   
   // Close fullscreen view
@@ -440,8 +539,14 @@ const initGallery = () => {
     fullscreenImg.src = currentImages[currentImageIndex];
     fullscreenImg.alt = `Travel photo ${currentImageIndex + 1}`;
     
+    // Preload adjacent images for smoother navigation
+    preloadAdjacentImages(currentImageIndex);
+    
     // Add particle effect
     createParticleEffect();
+    
+    // Call our enhanced positioning function
+    enhanceGalleryFullscreen();
   });
   
   // Navigate to next image
@@ -450,8 +555,14 @@ const initGallery = () => {
     fullscreenImg.src = currentImages[currentImageIndex];
     fullscreenImg.alt = `Travel photo ${currentImageIndex + 1}`;
     
+    // Preload adjacent images for smoother navigation
+    preloadAdjacentImages(currentImageIndex);
+    
     // Add particle effect
     createParticleEffect();
+    
+    // Call our enhanced positioning function
+    enhanceGalleryFullscreen();
   });
   
   // Keyboard navigation
@@ -513,32 +624,9 @@ const initGallery = () => {
     }
   };
   
-  // Check if all images are loaded
-  let loadedImages = 0;
-  const totalImagesToLoad = travelImages.length; 
-  
-  const checkImagesLoaded = () => {
-    loadedImages++;
-    if (loadedImages >= totalImagesToLoad) {
-      loadingElement.style.opacity = '0';
-      setTimeout(() => {
-        loadingElement.style.display = 'none';
-      }, 500);
-    }
-  };
-  
   // Initialize gallery
   generateGrid();
 };
-
-// Helper function to shuffle array
-function shuffleArray(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
 
 // Add CSS variables for primary color RGB values
 const setupColorRGB = () => {
@@ -590,6 +678,15 @@ function hexToRgb(hex) {
   return { r, g, b };
 }
 
+// Helper function to shuffle array
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
   // Initialize theme
@@ -598,7 +695,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Add event listeners
   btnThemeDesktop.addEventListener('click', toggleTheme);
   btnThemeMobile.addEventListener('click', toggleTheme);
-  btnThemeFixed.addEventListener('click', toggleTheme);
+  if (btnThemeFixed) {
+    btnThemeFixed.addEventListener('click', toggleTheme);
+  }
   hamburgerMenu.addEventListener('click', toggleMenu);
   scrollTopBtn.addEventListener('click', scrollToTop);
   
@@ -618,15 +717,27 @@ document.addEventListener('DOMContentLoaded', () => {
   createBackgroundShapes();
   addBackgroundShapesStyles();
   
-  // Initialize gallery
+  // Initialize gallery with enhancements
   initGallery();
+  enhanceGalleryFullscreen();
+  
+  // Change "Hobby Projects" to "Notable Projects"
+  const projectCategories = document.querySelectorAll('.projects__category-title');
+  projectCategories.forEach(title => {
+    if (title.textContent === 'Hobby Projects') {
+      title.textContent = 'Notable Projects';
+    }
+  });
 });
 
-// Window event listeners
+// Use original scroll handler
 window.addEventListener('scroll', handleScroll);
 
 // Handle resizing
 window.addEventListener('resize', () => {
   // Recalculate skill bars animation
   animateSkillBars();
+  
+  // Re-enhance gallery fullscreen
+  enhanceGalleryFullscreen();
 });
