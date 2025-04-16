@@ -319,30 +319,14 @@ const enhanceGalleryFullscreen = () => {
   }
 };
 
-// Travel Gallery Functionality
-// Optimized gallery code for faster image loading
+// Travel Gallery Functionality - 60-image gallery implementation (optimized for performance)
 const initGallery = () => {
-  // Get DOM elements
+  // DOM elements
   const gridContainer = document.querySelector('.gallery__grid-container');
   const randomButton = document.querySelector('.gallery__random-btn');
-  const fullscreenView = document.querySelector('.gallery__fullscreen');
-  const fullscreenImg = document.querySelector('.gallery__fullscreen-img');
-  const fullscreenClose = document.querySelector('.gallery__fullscreen-close');
-  const fullscreenPrev = document.querySelector('.gallery__fullscreen-prev');
-  const fullscreenNext = document.querySelector('.gallery__fullscreen-next');
+  const loadingElement = document.querySelector('.gallery__loading');
   
-  if (!gridContainer) return;
-  
-  // Create loading indicator
-  const loadingElement = document.createElement('div');
-  loadingElement.className = 'gallery__loading';
-  loadingElement.innerHTML = `
-    <div class="gallery__loading-spinner"></div>
-    <div class="gallery__loading-text">Loading adventures...</div>
-  `;
-  gridContainer.parentElement.appendChild(loadingElement);
-  
-  // Image array - replace these with your actual image paths
+  // Image array with travel images
   const travelImages = [
     'travel-images/IMG_7428.jpg',
     'travel-images/3092FFB1-5FDE-4AA9-8D31-BF1A53290291.jpg',
@@ -406,227 +390,175 @@ const initGallery = () => {
     'travel-images/IMG_9072.JPG'
   ];
   
-  // Shuffle the images for initial random display
+  
+  // Shuffle images by default
   let currentImages = [...travelImages];
   shuffleArray(currentImages);
   
-  // Current fullscreen image index
-  let currentImageIndex = 0;
+  // Track loading progress
+  let loadedCount = 0;
+  const totalToLoad = currentImages.length;
   
-  // Only load the images that are actually visible in the grid initially
-  // This dramatically improves loading performance
-  const generateGrid = () => {
+  // Performance optimization: batch loading
+  const loadImagesInBatches = () => {
+    // Show loading indicator
+    if (loadingElement) {
+      loadingElement.style.display = 'flex';
+      loadingElement.style.opacity = '1';
+    }
+    
+    // Clear grid container
     gridContainer.innerHTML = '';
     
-    // OPTIMIZATION 1: Only load the first 18 images initially (or fewer if there are less)
-    const initialLoadCount = Math.min(18, currentImages.length);
-    const imagesToLoad = currentImages.slice(0, initialLoadCount);
-    let loadedCount = 0;
+    // Reset loaded count
+    loadedCount = 0;
     
-    // Create all grid items with placeholders
-    currentImages.forEach((src, index) => {
-      const gridItem = document.createElement('div');
-      gridItem.className = 'gallery__grid-item';
+    // Function to actually load images
+    const loadNextBatch = (startIndex, totalImages) => {
+      const batchSize = 20; // Load 20 images at a time
+      const endIndex = Math.min(startIndex + batchSize, totalImages);
       
-      const img = document.createElement('img');
-      if (index < initialLoadCount) {
-        // Load initial visible images
-        img.src = src;
-        img.alt = `Travel photo ${index + 1}`;
-        img.setAttribute('data-index', index);
-        img.addEventListener('load', () => {
-          loadedCount++;
-          if (loadedCount >= initialLoadCount) {
-            // Hide the loading indicator once initial set is loaded
-            loadingElement.style.opacity = '0';
-            setTimeout(() => {
-              loadingElement.style.display = 'none';
-            }, 300);
-          }
-        });
-      } else {
-        // Use data-src for lazy loading of additional images
-        img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"%3E%3C/svg%3E';
-        img.alt = `Travel photo ${index + 1}`;
-        img.setAttribute('data-src', src);
-        img.setAttribute('data-index', index);
-        img.setAttribute('loading', 'lazy');
+      // Add images to grid
+      for (let i = startIndex; i < endIndex; i++) {
+        createGridItem(i);
       }
       
-      gridItem.appendChild(img);
-      gridItem.addEventListener('click', () => {
-        openFullscreen(index);
-      });
-      
-      gridContainer.appendChild(gridItem);
-    });
-    
-    // OPTIMIZATION 2: Set up intersection observer to lazy load remaining images
-    if ('IntersectionObserver' in window) {
-      const lazyImageObserver = new IntersectionObserver((entries, observer) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            const lazyImage = entry.target;
-            if (lazyImage.dataset.src) {
-              lazyImage.src = lazyImage.dataset.src;
-              lazyImage.removeAttribute('data-src');
-              observer.unobserve(lazyImage);
-            }
-          }
-        });
-      });
-
-      document.querySelectorAll('.gallery__grid-item img[data-src]').forEach(lazyImage => {
-        lazyImageObserver.observe(lazyImage);
-      });
-    } else {
-      // Fallback for browsers without intersection observer
-      document.querySelectorAll('.gallery__grid-item img[data-src]').forEach(img => {
-        img.src = img.getAttribute('data-src');
-        img.removeAttribute('data-src');
-      });
-    }
-  };
-  
-  // OPTIMIZATION 3: Preload adjacent images when in fullscreen view
-  const preloadAdjacentImages = (index) => {
-    const nextIndex = (index + 1) % currentImages.length;
-    const prevIndex = (index - 1 + currentImages.length) % currentImages.length;
-    
-    // Preload next and previous images
-    const nextImage = new Image();
-    nextImage.src = currentImages[nextIndex];
-    
-    const prevImage = new Image();
-    prevImage.src = currentImages[prevIndex];
-  };
-  
-  // Shuffle images randomly but keep initial load count small
-  randomButton.addEventListener('click', () => {
-    shuffleArray(currentImages);
-    loadingElement.style.display = 'flex';
-    loadingElement.style.opacity = '1';
-    generateGrid();
-  });
-  
-  // Open fullscreen view with original size image
-  const openFullscreen = (index) => {
-    currentImageIndex = index;
-    fullscreenImg.src = currentImages[index];
-    fullscreenImg.alt = `Travel photo ${index + 1}`;
-    fullscreenView.classList.add('active');
-    document.body.style.overflow = 'hidden'; // Prevent scrolling
-    
-    // Preload adjacent images for smoother navigation
-    preloadAdjacentImages(index);
-    
-    // Add particle effect
-    createParticleEffect();
-    
-    // Call our enhanced positioning function
-    enhanceGalleryFullscreen();
-  };
-  
-  // Close fullscreen view
-  fullscreenClose.addEventListener('click', () => {
-    fullscreenView.classList.remove('active');
-    document.body.style.overflow = ''; // Restore scrolling
-  });
-  
-  // Navigate to previous image
-  fullscreenPrev.addEventListener('click', () => {
-    currentImageIndex = (currentImageIndex - 1 + currentImages.length) % currentImages.length;
-    fullscreenImg.src = currentImages[currentImageIndex];
-    fullscreenImg.alt = `Travel photo ${currentImageIndex + 1}`;
-    
-    // Preload adjacent images for smoother navigation
-    preloadAdjacentImages(currentImageIndex);
-    
-    // Add particle effect
-    createParticleEffect();
-    
-    // Call our enhanced positioning function
-    enhanceGalleryFullscreen();
-  });
-  
-  // Navigate to next image
-  fullscreenNext.addEventListener('click', () => {
-    currentImageIndex = (currentImageIndex + 1) % currentImages.length;
-    fullscreenImg.src = currentImages[currentImageIndex];
-    fullscreenImg.alt = `Travel photo ${currentImageIndex + 1}`;
-    
-    // Preload adjacent images for smoother navigation
-    preloadAdjacentImages(currentImageIndex);
-    
-    // Add particle effect
-    createParticleEffect();
-    
-    // Call our enhanced positioning function
-    enhanceGalleryFullscreen();
-  });
-  
-  // Keyboard navigation
-  document.addEventListener('keydown', (e) => {
-    if (fullscreenView.classList.contains('active')) {
-      switch (e.key) {
-        case 'Escape':
-          fullscreenView.classList.remove('active');
-          document.body.style.overflow = '';
-          break;
-        case 'ArrowLeft':
-          fullscreenPrev.click();
-          break;
-        case 'ArrowRight':
-          fullscreenNext.click();
-          break;
+      // If more images to load, schedule next batch
+      if (endIndex < totalImages) {
+        setTimeout(() => {
+          loadNextBatch(endIndex, totalImages);
+        }, 100); // Small delay to prevent UI blocking
       }
-    }
-  });
+    };
+    
+    // Start loading first batch
+    loadNextBatch(0, totalToLoad);
+  };
   
-  // Create particle effect for fullscreen transitions
-  const createParticleEffect = () => {
-    const particlesContainer = fullscreenView;
-    const numParticles = 20;
+  // Create a grid item for an image
+  const createGridItem = (index) => {
+    const gridItem = document.createElement('div');
+    gridItem.className = 'gallery__grid-item';
     
-    // Remove existing particles
-    const existingParticles = particlesContainer.querySelectorAll('.gallery__particle');
-    existingParticles.forEach(particle => particle.remove());
+    const img = document.createElement('img');
+    img.src = currentImages[index];
+    img.alt = `Travel photo ${index + 1}`;
+    img.loading = 'lazy'; // Use native lazy loading
     
-    // Create new particles
-    for (let i = 0; i < numParticles; i++) {
-      const particle = document.createElement('div');
-      particle.className = 'gallery__particle';
-      
-      // Random size between 5px and 20px
-      const size = Math.random() * 15 + 5;
-      particle.style.width = `${size}px`;
-      particle.style.height = `${size}px`;
-      
-      // Random position
-      const posX = Math.random() * 100;
-      const posY = Math.random() * 100;
-      particle.style.left = `${posX}%`;
-      particle.style.top = `${posY}%`;
-      
-      // Random animation
-      const animDuration = Math.random() * 3 + 1;
-      const animDelay = Math.random() * 0.5;
-      particle.style.animation = `float ${animDuration}s ease-in-out ${animDelay}s infinite alternate`;
-      
-      particlesContainer.appendChild(particle);
-      
-      // Remove particle after animation
-      setTimeout(() => {
-        if (particle.parentNode) {
-          particle.parentNode.removeChild(particle);
-        }
-      }, 3000);
+    // Handle load event
+    img.onload = () => {
+      loadedCount++;
+      checkLoadingComplete();
+    };
+    
+    // Handle error event
+    img.onerror = () => {
+      gridItem.classList.add('gallery__grid-item--error');
+      img.remove();
+      loadedCount++; // Count as loaded even though it failed
+      checkLoadingComplete();
+    };
+    
+    gridItem.appendChild(img);
+    gridContainer.appendChild(gridItem);
+  };
+  
+  // Check if all images are loaded
+  const checkLoadingComplete = () => {
+    if (loadedCount >= totalToLoad) {
+      // All images loaded, hide the loading indicator
+      if (loadingElement) {
+        loadingElement.style.opacity = '0';
+        setTimeout(() => {
+          loadingElement.style.display = 'none';
+        }, 300);
+      }
+    } else if (loadedCount > 0 && loadedCount >= totalToLoad / 2) {
+      // When half the images are loaded, start fading the loader
+      if (loadingElement) {
+        loadingElement.style.opacity = '0.3';
+      }
     }
   };
   
   // Initialize gallery
-  generateGrid();
+  loadImagesInBatches();
+  
+  // Handle shuffle button click
+  if (randomButton) {
+    randomButton.addEventListener('click', () => {
+      // Reshuffle images
+      shuffleArray(currentImages);
+      
+      // Reload gallery
+      loadImagesInBatches();
+    });
+  }
 };
+
+// Helper function to shuffle array
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+// Helper function to shuffle array
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+// Helper function to shuffle array
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+// Helper function to shuffle array
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+// Helper function to shuffle array
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+// Check if WebP is supported
+function checkWebPSupport() {
+  const elem = document.createElement('canvas');
+  if (elem.getContext && elem.getContext('2d')) {
+    // Was able or not to get WebP representation
+    return elem.toDataURL('image/webp').indexOf('data:image/webp') == 0;
+  }
+  return false;
+}
+
+// Helper function to shuffle array (same as your original)
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
 
 // Add CSS variables for primary color RGB values
 const setupColorRGB = () => {
