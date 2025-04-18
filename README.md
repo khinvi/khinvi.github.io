@@ -1,22 +1,18 @@
-# Portfolio-Website
-Website showcasing projects, skills, and a little bit about me.
+# Portfolio Website
+Website showcasing projects, skills, and a little bit about me. Visit it [here](https://khinvi.github.io/)
 
 ## 🛠️ Built With
 
 * HTML
 * CSS
 * JavaScript
-* Love ❤️
+* ❤️
 
-## 🔗 Links
-
-* [Visit my website!](https://khinvi.github.io/)
-
-## ✨ Stay Connected
+## ✨ Socials
 
 * [LinkedIn](https://www.linkedin.com/in/arnavkhinvasara/)
 * [GitHub](https://github.com/khinvi)
 
 ## 📬 Contact
 
-Feel free to reach out! [akhinvasara@ucsd.edu]
+[akhinvasara@ucsd.edu]
