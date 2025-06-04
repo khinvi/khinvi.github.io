@@ -46,8 +46,8 @@ const toggleTheme = () => {
   }
 };
 
-// Simple Grid Gallery Implementation with Progress Bar
-class SimpleGridGallery {
+// Ultra-Fast Gallery Implementation
+class FastGallery {
   constructor() {
     this.container = document.getElementById('gallery-grid');
     this.loadingIndicator = document.getElementById('loading-indicator');
@@ -124,6 +124,7 @@ class SimpleGridGallery {
     this.loadedCount = 0;
     this.totalImages = this.images.length;
     this.currentImages = [...this.images];
+    this.visibleImages = 20; // Only load first 20 images initially
     
     this.init();
   }
@@ -140,8 +141,8 @@ class SimpleGridGallery {
     // Setup event listeners
     this.setupEventListeners();
     
-    // Start loading images
-    this.loadImages();
+    // Start with fast initial load
+    this.fastInitialLoad();
   }
   
   setupEventListeners() {
@@ -169,9 +170,98 @@ class SimpleGridGallery {
     this.shuffleArray(this.currentImages);
     this.container.innerHTML = '';
     this.loadedCount = 0;
+    this.visibleImages = 20;
+    this.fastInitialLoad();
+  }
+  
+  fastInitialLoad() {
     this.showLoading();
-    this.updateProgress();
-    this.loadImages();
+    
+    // Create ALL grid items immediately with placeholders
+    this.createAllGridItems();
+    
+    // Hide loading immediately - placeholders are showing
+    setTimeout(() => {
+      this.hideLoading();
+    }, 500);
+    
+    // Start loading actual images in background
+    this.loadImagesInBackground();
+  }
+  
+  createAllGridItems() {
+    // Create all 60 grid items instantly with placeholders
+    this.currentImages.forEach((src, index) => {
+      const item = document.createElement('div');
+      item.className = 'gallery__grid-item';
+      item.innerHTML = `
+        <div class="gallery__placeholder" data-src="${src}" data-index="${index}">
+          <span class="placeholder-icon">📸</span>
+        </div>
+      `;
+      this.container.appendChild(item);
+    });
+    
+    // Update progress to show grid is ready
+    this.updateProgress(20, 'Grid ready, loading images...');
+  }
+  
+  loadImagesInBackground() {
+    // Load only first 15 images immediately for viewport
+    for (let i = 0; i < Math.min(15, this.totalImages); i++) {
+      setTimeout(() => {
+        this.loadSingleImage(i);
+      }, i * 100);
+    }
+    
+    // Load remaining images when user scrolls or after delay
+    setTimeout(() => {
+      this.loadRemainingImages();
+    }, 2000);
+  }
+  
+  loadSingleImage(index) {
+    const placeholder = this.container.children[index]?.querySelector('.gallery__placeholder');
+    if (!placeholder) return;
+    
+    const src = placeholder.dataset.src;
+    const img = document.createElement('img');
+    
+    img.onload = () => {
+      placeholder.style.opacity = '0';
+      setTimeout(() => {
+        placeholder.replaceWith(img);
+        this.loadedCount++;
+        this.updateProgress();
+      }, 200);
+    };
+    
+    img.onerror = () => {
+      placeholder.innerHTML = '<div class="gallery__error">📷</div>';
+      this.loadedCount++;
+      this.updateProgress();
+    };
+    
+    // Optimized image loading
+    img.src = src;
+    img.alt = `Travel photo ${index + 1}`;
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.style.opacity = '0';
+    img.style.transition = 'opacity 0.3s ease';
+    
+    setTimeout(() => {
+      img.style.opacity = '1';
+    }, 100);
+  }
+  
+  loadRemainingImages() {
+    // Load remaining images in small batches
+    for (let i = 15; i < this.totalImages; i++) {
+      setTimeout(() => {
+        this.loadSingleImage(i);
+      }, (i - 15) * 200); // Slower loading for remaining images
+    }
   }
   
   showLoading() {
@@ -179,7 +269,6 @@ class SimpleGridGallery {
       this.loadingIndicator.style.display = 'flex';
       this.loadingIndicator.style.opacity = '1';
     }
-    this.updateProgress();
   }
   
   hideLoading() {
@@ -187,12 +276,12 @@ class SimpleGridGallery {
       this.loadingIndicator.style.opacity = '0';
       setTimeout(() => {
         this.loadingIndicator.style.display = 'none';
-      }, 500);
+      }, 300);
     }
   }
   
-  updateProgress() {
-    const percentage = Math.round((this.loadedCount / this.totalImages) * 100);
+  updateProgress(forcePercentage = null, customText = null) {
+    const percentage = forcePercentage || Math.round((this.loadedCount / this.totalImages) * 100);
     
     if (this.progressFill) {
       this.progressFill.style.width = `${percentage}%`;
@@ -203,98 +292,12 @@ class SimpleGridGallery {
     }
     
     if (this.progressCount) {
-      this.progressCount.textContent = `${this.loadedCount} / ${this.totalImages} photos`;
-    }
-  }
-  
-  createImageElement(src, index) {
-    const item = document.createElement('div');
-    item.className = 'gallery__grid-item';
-    
-    // Create a low-quality placeholder first
-    const placeholder = document.createElement('div');
-    placeholder.className = 'gallery__placeholder';
-    placeholder.style.background = `linear-gradient(45deg, 
-      rgba(var(--clr-primary-rgb, 59, 130, 246), 0.1) 0%, 
-      rgba(var(--clr-primary-rgb, 59, 130, 246), 0.05) 100%)`;
-    item.appendChild(placeholder);
-    
-    // Create image with optimized loading
-    const img = document.createElement('img');
-    img.alt = `Travel photo ${index + 1}`;
-    img.loading = 'lazy';
-    img.decoding = 'async'; // Faster decoding
-    img.style.opacity = '0';
-    img.style.transition = 'opacity 0.3s ease';
-    
-    // Handle successful load
-    img.onload = () => {
-      placeholder.remove();
-      img.style.opacity = '1';
-      this.loadedCount++;
-      this.updateProgress();
-      this.checkLoadingComplete();
-    };
-    
-    // Handle error
-    img.onerror = () => {
-      placeholder.remove();
-      item.innerHTML = '<div class="gallery__error">📷</div>';
-      this.loadedCount++;
-      this.updateProgress();
-      this.checkLoadingComplete();
-    };
-    
-    // Set source with query parameters to request smaller image
-    // This tricks some browsers/CDNs into serving compressed versions
-    img.src = `${src}?w=400&q=75`; // Width 400px, Quality 75%
-    
-    item.appendChild(img);
-    return item;
-  }
-  
-  loadImages() {
-    this.showLoading();
-    
-    // Load images in smaller batches for better performance
-    const batchSize = 10; // Load 10 images at a time
-    let currentBatch = 0;
-    
-    const loadBatch = () => {
-      const start = currentBatch * batchSize;
-      const end = Math.min(start + batchSize, this.totalImages);
-      
-      for (let i = start; i < end; i++) {
-        setTimeout(() => {
-          const imageElement = this.createImageElement(this.currentImages[i], i);
-          this.container.appendChild(imageElement);
-        }, (i - start) * 25); // 25ms delay between images in batch
-      }
-      
-      currentBatch++;
-      
-      // Schedule next batch
-      if (end < this.totalImages) {
-        setTimeout(() => {
-          loadBatch();
-        }, 500); // 500ms delay between batches
-      }
-    };
-    
-    loadBatch();
-  }
-  
-  checkLoadingComplete() {
-    if (this.loadedCount >= this.totalImages) {
-      // Show 100% for a moment before hiding
-      setTimeout(() => {
-        this.hideLoading();
-      }, 800);
+      this.progressCount.textContent = customText || `${this.loadedCount} / ${this.totalImages} photos`;
     }
   }
 }
 
 // Initialize gallery when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-  new SimpleGridGallery();
+  new FastGallery();
 });
