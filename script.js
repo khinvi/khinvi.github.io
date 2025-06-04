@@ -31,12 +31,10 @@ const addThemeClass = (bodyClass, btnClass) => {
   body.classList.add(bodyClass);
   btnThemeDesktop.classList.remove('fa-moon', 'fa-sun');
   btnThemeMobile.classList.remove('fa-moon', 'fa-sun');
-  if (btnThemeFixed) {
-    btnThemeFixed.classList.remove('fa-moon', 'fa-sun');
-    btnThemeFixed.classList.add(btnClass);
-  }
+  btnThemeFixed.classList.remove('fa-moon', 'fa-sun');
   btnThemeDesktop.classList.add(btnClass);
   btnThemeMobile.classList.add(btnClass);
+  btnThemeFixed.classList.add(btnClass);
 };
 
 // Get theme from local storage or set default
@@ -65,7 +63,7 @@ const setTheme = (bodyClass, btnClass) => {
   localStorage.setItem('portfolio-btn-theme', btnClass);
 };
 
-// loading between light and dark themes
+// Toggle between light and dark themes
 const toggleTheme = () => {
   if (isDark()) {
     setTheme('light', 'fa-moon');
@@ -218,8 +216,6 @@ const createBackgroundShapes = () => {
   const heroSection = document.querySelector('.home-hero');
   const numShapes = 5;
   
-  if (!heroSection) return;
-  
   for (let i = 0; i < numShapes; i++) {
     const shape = document.createElement('div');
     shape.classList.add('bg-shape');
@@ -298,37 +294,29 @@ const addBackgroundShapesStyles = () => {
   document.head.appendChild(style);
 };
 
-// Enhanced fullscreen gallery positioning
-const enhanceGalleryFullscreen = () => {
-  const fullscreenView = document.querySelector('.gallery__fullscreen');
-  const fullscreenImg = document.querySelector('.gallery__fullscreen-img');
-  
-  if (fullscreenImg) {
-    // Center the image by default
-    fullscreenImg.style.margin = '0 auto';
-    
-    // Adjust image orientation based on dimensions
-    fullscreenImg.addEventListener('load', () => {
-      // Reset styles
-      fullscreenImg.style.maxWidth = '100%';
-      fullscreenImg.style.maxHeight = '90vh';
-      
-      // Center the image
-      fullscreenImg.style.margin = '0 auto';
-    });
-  }
-};
-
-// Travel Gallery Functionality - 60-image gallery implementation (optimized for performance)
+// Travel Gallery Functionality
 const initGallery = () => {
-  // DOM elements
+  // Get DOM elements
   const gridContainer = document.querySelector('.gallery__grid-container');
   const randomButton = document.querySelector('.gallery__random-btn');
-  const loadingElement = document.querySelector('.gallery__loading');
+  const fullscreenView = document.querySelector('.gallery__fullscreen');
+  const fullscreenImg = document.querySelector('.gallery__fullscreen-img');
+  const fullscreenClose = document.querySelector('.gallery__fullscreen-close');
+  const fullscreenPrev = document.querySelector('.gallery__fullscreen-prev');
+  const fullscreenNext = document.querySelector('.gallery__fullscreen-next');
   
-  // Image array with travel images
+  // Create loading indicator
+  const loadingElement = document.createElement('div');
+  loadingElement.className = 'gallery__loading';
+  loadingElement.innerHTML = `
+    <div class="gallery__loading-spinner"></div>
+    <div class="gallery__loading-text">Loading your adventures...</div>
+  `;
+  gridContainer.parentElement.appendChild(loadingElement);
+  
+  // Image array - replace these with your actual image paths
   const travelImages = [
-    'travel-images/IMG_7428.jpg',
+    'travel-images/248BBBC8-BF8A-4285-9BBE-DE96EFA37645.jpg',
     'travel-images/3092FFB1-5FDE-4AA9-8D31-BF1A53290291.jpg',
     'travel-images/A4354952-2B24-4141-90CE-1FD091E12395.jpg',
     'travel-images/E69D841A-A2B0-4DAC-9FE3-1333A063D448.jpg',
@@ -385,173 +373,165 @@ const initGallery = () => {
     'travel-images/IMG_8750.JPG',
     'travel-images/IMG_8839 2.JPG',
     'travel-images/IMG_8870 2.JPG',
-    'travel-images/IMG_7605.jpg',
+    'travel-images/IMG_8920 2.JPG',
     'travel-images/IMG_8989 3.JPG',
     'travel-images/IMG_9072.JPG'
   ];
   
-  
-  // Shuffle images by default
+  // Shuffle the images for initial random display
   let currentImages = [...travelImages];
   shuffleArray(currentImages);
   
-  // Track loading progress
-  let loadedCount = 0;
-  const totalToLoad = currentImages.length;
+  // Current fullscreen image index
+  let currentImageIndex = 0;
   
-  // Performance optimization: batch loading
-  const loadImagesInBatches = () => {
-    // Show loading indicator
-    if (loadingElement) {
-      loadingElement.style.display = 'flex';
-      loadingElement.style.opacity = '1';
-    }
-    
-    // Clear grid container
+  // Generate grid layout
+  const generateGrid = () => {
     gridContainer.innerHTML = '';
     
-    // Reset loaded count
-    loadedCount = 0;
-    
-    // Function to actually load images
-    const loadNextBatch = (startIndex, totalImages) => {
-      const batchSize = 20; // Load 20 images at a time
-      const endIndex = Math.min(startIndex + batchSize, totalImages);
+    currentImages.forEach((src, index) => {
+      const gridItem = document.createElement('div');
+      gridItem.className = 'gallery__grid-item';
       
-      // Add images to grid
-      for (let i = startIndex; i < endIndex; i++) {
-        createGridItem(i);
-      }
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = `Travel photo ${index + 1}`;
+      img.setAttribute('data-index', index);
+      img.addEventListener('load', () => {
+        checkImagesLoaded();
+      });
       
-      // If more images to load, schedule next batch
-      if (endIndex < totalImages) {
-        setTimeout(() => {
-          loadNextBatch(endIndex, totalImages);
-        }, 100); // Small delay to prevent UI blocking
-      }
-    };
-    
-    // Start loading first batch
-    loadNextBatch(0, totalToLoad);
+      gridItem.appendChild(img);
+      gridItem.addEventListener('click', () => {
+        openFullscreen(index);
+      });
+      
+      gridContainer.appendChild(gridItem);
+    });
   };
   
-  // Create a grid item for an image
-  const createGridItem = (index) => {
-    const gridItem = document.createElement('div');
-    gridItem.className = 'gallery__grid-item';
+  // Shuffle images randomly
+  randomButton.addEventListener('click', () => {
+    shuffleArray(currentImages);
+    generateGrid();
+  });
+  
+  // Open fullscreen view with original size image
+  const openFullscreen = (index) => {
+    currentImageIndex = index;
+    fullscreenImg.src = currentImages[index];
+    fullscreenImg.alt = `Travel photo ${index + 1}`;
+    fullscreenView.classList.add('active');
+    document.body.style.overflow = 'hidden'; // Prevent scrolling
     
-    const img = document.createElement('img');
-    img.src = currentImages[index];
-    img.alt = `Travel photo ${index + 1}`;
-    img.loading = 'lazy'; // Use native lazy loading
+    // Add particle effect
+    createParticleEffect();
+  };
+  
+  // Close fullscreen view
+  fullscreenClose.addEventListener('click', () => {
+    fullscreenView.classList.remove('active');
+    document.body.style.overflow = ''; // Restore scrolling
+  });
+  
+  // Navigate to previous image
+  fullscreenPrev.addEventListener('click', () => {
+    currentImageIndex = (currentImageIndex - 1 + currentImages.length) % currentImages.length;
+    fullscreenImg.src = currentImages[currentImageIndex];
+    fullscreenImg.alt = `Travel photo ${currentImageIndex + 1}`;
     
-    // Handle load event
-    img.onload = () => {
-      loadedCount++;
-      checkLoadingComplete();
-    };
+    // Add particle effect
+    createParticleEffect();
+  });
+  
+  // Navigate to next image
+  fullscreenNext.addEventListener('click', () => {
+    currentImageIndex = (currentImageIndex + 1) % currentImages.length;
+    fullscreenImg.src = currentImages[currentImageIndex];
+    fullscreenImg.alt = `Travel photo ${currentImageIndex + 1}`;
     
-    // Handle error event
-    img.onerror = () => {
-      gridItem.classList.add('gallery__grid-item--error');
-      img.remove();
-      loadedCount++; // Count as loaded even though it failed
-      checkLoadingComplete();
-    };
+    // Add particle effect
+    createParticleEffect();
+  });
+  
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (fullscreenView.classList.contains('active')) {
+      switch (e.key) {
+        case 'Escape':
+          fullscreenView.classList.remove('active');
+          document.body.style.overflow = '';
+          break;
+        case 'ArrowLeft':
+          fullscreenPrev.click();
+          break;
+        case 'ArrowRight':
+          fullscreenNext.click();
+          break;
+      }
+    }
+  });
+  
+  // Create particle effect for fullscreen transitions
+  const createParticleEffect = () => {
+    const particlesContainer = fullscreenView;
+    const numParticles = 20;
     
-    gridItem.appendChild(img);
-    gridContainer.appendChild(gridItem);
+    // Remove existing particles
+    const existingParticles = particlesContainer.querySelectorAll('.gallery__particle');
+    existingParticles.forEach(particle => particle.remove());
+    
+    // Create new particles
+    for (let i = 0; i < numParticles; i++) {
+      const particle = document.createElement('div');
+      particle.className = 'gallery__particle';
+      
+      // Random size between 5px and 20px
+      const size = Math.random() * 15 + 5;
+      particle.style.width = `${size}px`;
+      particle.style.height = `${size}px`;
+      
+      // Random position
+      const posX = Math.random() * 100;
+      const posY = Math.random() * 100;
+      particle.style.left = `${posX}%`;
+      particle.style.top = `${posY}%`;
+      
+      // Random animation
+      const animDuration = Math.random() * 3 + 1;
+      const animDelay = Math.random() * 0.5;
+      particle.style.animation = `float ${animDuration}s ease-in-out ${animDelay}s infinite alternate`;
+      
+      particlesContainer.appendChild(particle);
+      
+      // Remove particle after animation
+      setTimeout(() => {
+        if (particle.parentNode) {
+          particle.parentNode.removeChild(particle);
+        }
+      }, 3000);
+    }
   };
   
   // Check if all images are loaded
-  const checkLoadingComplete = () => {
-    if (loadedCount >= totalToLoad) {
-      // All images loaded, hide the loading indicator
-      if (loadingElement) {
-        loadingElement.style.opacity = '0';
-        setTimeout(() => {
-          loadingElement.style.display = 'none';
-        }, 300);
-      }
-    } else if (loadedCount > 0 && loadedCount >= totalToLoad / 2) {
-      // When half the images are loaded, start fading the loader
-      if (loadingElement) {
-        loadingElement.style.opacity = '0.3';
-      }
+  let loadedImages = 0;
+  const totalImagesToLoad = travelImages.length; 
+  
+  const checkImagesLoaded = () => {
+    loadedImages++;
+    if (loadedImages >= totalImagesToLoad) {
+      loadingElement.style.opacity = '0';
+      setTimeout(() => {
+        loadingElement.style.display = 'none';
+      }, 500);
     }
   };
   
   // Initialize gallery
-  loadImagesInBatches();
-  
-  // Handle shuffle button click
-  if (randomButton) {
-    randomButton.addEventListener('click', () => {
-      // Reshuffle images
-      shuffleArray(currentImages);
-      
-      // Reload gallery
-      loadImagesInBatches();
-    });
-  }
+  generateGrid();
 };
 
 // Helper function to shuffle array
-function shuffleArray(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
-
-// Helper function to shuffle array
-function shuffleArray(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
-
-// Helper function to shuffle array
-function shuffleArray(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
-
-// Helper function to shuffle array
-function shuffleArray(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
-
-// Helper function to shuffle array
-function shuffleArray(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
-
-// Check if WebP is supported
-function checkWebPSupport() {
-  const elem = document.createElement('canvas');
-  if (elem.getContext && elem.getContext('2d')) {
-    // Was able or not to get WebP representation
-    return elem.toDataURL('image/webp').indexOf('data:image/webp') == 0;
-  }
-  return false;
-}
-
-// Helper function to shuffle array (same as your original)
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -610,15 +590,6 @@ function hexToRgb(hex) {
   return { r, g, b };
 }
 
-// Helper function to shuffle array
-function shuffleArray(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
-
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
   // Initialize theme
@@ -627,9 +598,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Add event listeners
   btnThemeDesktop.addEventListener('click', toggleTheme);
   btnThemeMobile.addEventListener('click', toggleTheme);
-  if (btnThemeFixed) {
-    btnThemeFixed.addEventListener('click', toggleTheme);
-  }
+  btnThemeFixed.addEventListener('click', toggleTheme);
   hamburgerMenu.addEventListener('click', toggleMenu);
   scrollTopBtn.addEventListener('click', scrollToTop);
   
@@ -649,27 +618,15 @@ document.addEventListener('DOMContentLoaded', () => {
   createBackgroundShapes();
   addBackgroundShapesStyles();
   
-  // Initialize gallery with enhancements
+  // Initialize gallery
   initGallery();
-  enhanceGalleryFullscreen();
-  
-  // Change "Hobby Projects" to "Notable Projects"
-  const projectCategories = document.querySelectorAll('.projects__category-title');
-  projectCategories.forEach(title => {
-    if (title.textContent === 'Hobby Projects') {
-      title.textContent = 'Notable Projects';
-    }
-  });
 });
 
-// Use original scroll handler
+// Window event listeners
 window.addEventListener('scroll', handleScroll);
 
 // Handle resizing
 window.addEventListener('resize', () => {
   // Recalculate skill bars animation
   animateSkillBars();
-  
-  // Re-enhance gallery fullscreen
-  enhanceGalleryFullscreen();
 });

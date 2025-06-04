@@ -63,7 +63,7 @@
           </a>
         </li>
         <li class="side-nav__item">
-          <a href="#gallery" class="side-nav__link">
+          <a href="gallery.html" class="side-nav__link">
             <i class="fas fa-camera side-nav__icon"></i>
             <span class="side-nav__text">Gallery</span>
           </a>
@@ -122,7 +122,7 @@
             <a href="#skills"><i class="fas fa-cogs"></i> Skills</a>
           </li>
           <li class="header__sm-menu-link">
-            <a href="#gallery"><i class="fas fa-camera"></i> Gallery</a>
+            <a href="gallery.html"><i class="fas fa-camera"></i> Gallery</a>
           </li>
         </ul>
       </div>
@@ -683,25 +683,34 @@
       </div>
     </div>
   </section>
-  <section id="gallery" class="gallery" data-aos="fade-up">
+
+  <!-- Gallery Preview Section (New) -->
+  <section class="gallery-preview" data-aos="fade-up">
     <div class="main-container">
-      <h2 class="section-heading">Always on the go</h2>
-      <p class="gallery__subheading">📸 🌍 ✈️ 🏞️ 🏝️</p>
+      <h2 class="section-heading">Travel Gallery</h2>
+      <p class="gallery-preview__description">
+        Explore my photography from adventures around the world
+      </p>
       
-      <div class="gallery__controls">
-        <button class="gallery__random-btn">Shuffle Photos</button>
-      </div>
-      
-      <div class="gallery__container">
-        <!-- Loading indicator -->
-        <div class="gallery__loading">
-          <div class="gallery__loading-spinner"></div>
-          <div class="gallery__loading-text">Loading photos...</div>
+      <div class="gallery-preview__content">
+        <div class="gallery-preview__images">
+          <div class="gallery-preview__image" data-aos="fade-up" data-aos-delay="100">
+            <img src="travel-images/IMG_5154.jpg" alt="Travel preview 1" loading="lazy">
+          </div>
+          <div class="gallery-preview__image" data-aos="fade-up" data-aos-delay="200">
+            <img src="travel-images/IMG_7592.jpg" alt="Travel preview 2" loading="lazy">
+          </div>
+          <div class="gallery-preview__image" data-aos="fade-up" data-aos-delay="300">
+            <img src="travel-images/IMG_5871.jpg" alt="Travel preview 3" loading="lazy">
+          </div>
         </div>
         
-        <!-- Grid view container -->
-        <div class="gallery__grid-container">
-          <!-- Images will be added here by JavaScript -->
+        <div class="gallery-preview__cta" data-aos="fade-up" data-aos-delay="400">
+          <a href="gallery.html" class="btn btn--primary gallery-preview__btn">
+            <i class="fas fa-camera"></i>
+            View Full Gallery (60+ Photos)
+          </a>
+          <p class="gallery-preview__note">📸 🌍 ✈️ 🏞️ 🏝️</p>
         </div>
       </div>
     </div>
@@ -740,6 +749,6 @@
 
   <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/mcstudios/glightbox/dist/js/glightbox.min.js"></script>
-  <script src="script.js"></script>
+  <script src="script-main.js"></script>
 </body>
 </html>

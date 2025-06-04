@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Arnav Khinvasara - Travel Photo Gallery" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <title>Photo Gallery | Arnav Khinvasara</title>
+  
+  <style>
+    /* Gallery-specific styles */
+    .gallery-page {
+      min-height: 100vh;
+      padding-top: 12rem;
+      background-color: var(--clr-bg);
+    }
+
+    .gallery-header {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+
+    .gallery-back-btn {
+      position: fixed;
+      top: 2rem;
+      left: 2rem;
+      z-index: 1000;
+      background: var(--clr-bg-alt);
+      border: none;
+      border-radius: 50%;
+      width: 5rem;
+      height: 5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow);
+      color: var(--clr-primary);
+      font-size: 2rem;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+
+    .gallery-back-btn:hover {
+      transform: scale(1.1);
+      background: var(--clr-primary);
+      color: white;
+    }
+
+    /* Simple 5x12 Grid Layout */
+    .gallery__grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .gallery__grid-item {
+      aspect-ratio: 1 / 1;
+      overflow: hidden;
+      border-radius: var(--border-radius-sm);
+      box-shadow: var(--shadow-sm);
+      transition: all var(--transition);
+      background-color: var(--clr-bg-alt);
+    }
+
+    .gallery__grid-item:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .gallery__grid-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform var(--transition);
+      /* Image optimization for faster loading */
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+      /* Force browser to prioritize speed over quality */
+      will-change: transform;
+    }
+
+    .gallery__grid-item:hover img {
+      transform: scale(1.05);
+    }
+
+    .gallery__error {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      font-size: 2rem;
+      color: var(--clr-gray);
+      background-color: var(--clr-bg-alt);
+    }
+
+    /* Placeholder for faster perceived loading */
+    .gallery__placeholder {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(45deg, 
+        rgba(var(--clr-primary-rgb, 59, 130, 246), 0.05) 0%, 
+        rgba(var(--clr-primary-rgb, 59, 130, 246), 0.1) 50%,
+        rgba(var(--clr-primary-rgb, 59, 130, 246), 0.05) 100%);
+      background-size: 200% 200%;
+      animation: shimmerPlaceholder 2s infinite;
+      border-radius: var(--border-radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--clr-gray);
+      font-size: 1.5rem;
+    }
+
+    .gallery__placeholder::before {
+      content: '📸';
+      opacity: 0.3;
+    }
+
+    @keyframes shimmerPlaceholder {
+      0% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+
+    /* Responsive grid */
+    @media (max-width: 1200px) {
+      .gallery__grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    @media (max-width: 992px) {
+      .gallery__grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .gallery__grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.8rem;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .gallery__grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+      }
+      
+      .gallery-back-btn {
+        top: 1rem;
+        left: 1rem;
+        width: 4rem;
+        height: 4rem;
+        font-size: 1.6rem;
+      }
+    }
+
+    /* Enhanced Loading Screen with Progress Bar */
+    .gallery__loading {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--clr-bg) 0%, var(--clr-bg-alt) 100%);
+      z-index: 5;
+      transition: opacity 0.5s ease;
+    }
+
+    .gallery__loading-content {
+      text-align: center;
+      max-width: 400px;
+      padding: 3rem;
+      background: var(--clr-bg-alt);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-lg);
+      border: 1px solid rgba(var(--clr-primary-rgb, 59, 130, 246), 0.1);
+    }
+
+    .gallery__loading-icon {
+      font-size: 4rem;
+      margin-bottom: 1.5rem;
+      animation: pulse 2s infinite;
+    }
+
+    .gallery__loading-title {
+      font-size: 2.2rem;
+      color: var(--clr-primary);
+      margin-bottom: 2rem;
+      font-weight: 600;
+    }
+
+    .gallery__loading-progress {
+      margin-bottom: 2rem;
+    }
+
+    .gallery__progress-bar {
+      width: 100%;
+      height: 8px;
+      background-color: rgba(var(--clr-primary-rgb, 59, 130, 246), 0.1);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 1rem;
+      position: relative;
+    }
+
+    .gallery__progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--clr-primary), var(--clr-secondary));
+      width: 0%;
+      transition: width 0.3s ease;
+      border-radius: 10px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .gallery__progress-fill::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      right: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      animation: shimmer 2s infinite;
+    }
+
+    .gallery__progress-text {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 1.4rem;
+      color: var(--clr-fg);
+    }
+
+    #progress-percentage {
+      font-weight: 700;
+      color: var(--clr-primary);
+      font-size: 1.6rem;
+    }
+
+    #progress-count {
+      color: var(--clr-gray);
+      font-size: 1.2rem;
+    }
+
+    .gallery__loading-subtitle {
+      color: var(--clr-gray);
+      font-size: 1.4rem;
+      font-style: italic;
+      margin: 0;
+    }
+
+    /* Animations */
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+      }
+    }
+
+    @keyframes shimmer {
+      0% {
+        transform: translateX(-100%);
+      }
+      100% {
+        transform: translateX(100%);
+      }
+    }
+
+    /* Remove old loading styles */
+    .gallery__loading-spinner {
+      display: none;
+    }
+
+    .gallery__loading-text {
+      display: none;
+    }
+
+    /* Stats section */
+    .gallery-stats {
+      text-align: center;
+      margin-bottom: 3rem;
+      padding: 2rem;
+      background: var(--clr-bg-alt);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-sm);
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .gallery-stats__numbers {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 1rem;
+    }
+
+    .gallery-stats__item {
+      text-align: center;
+    }
+
+    .gallery-stats__number {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--clr-primary);
+      display: block;
+    }
+
+    .gallery-stats__label {
+      font-size: 1.2rem;
+      color: var(--clr-gray);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+
+<body class="light">
+  <!-- Back button -->
+  <button class="gallery-back-btn" onclick="history.back()" aria-label="Go back">
+    <i class="fas fa-arrow-left"></i>
+  </button>
+
+  <!-- Theme toggle (fixed position) -->
+  <div class="theme-toggle-fixed">
+    <button aria-label="toggle theme" class="btn btn--icon" id="btn-theme-fixed">
+      <i class="fas fa-moon"></i>
+    </button>
+  </div>
+
+  <main class="gallery-page">
+    <div class="main-container">
+      <!-- Gallery Header -->
+      <div class="gallery-header" data-aos="fade-up">
+        <h1 class="section-heading">Travel Gallery</h1>
+        <p class="gallery__subheading">📸 Adventures around the world 🌍</p>
+        
+        <!-- Gallery Stats -->
+        <div class="gallery-stats" data-aos="fade-up" data-aos-delay="200">
+          <p>Capturing moments from my journeys across different continents</p>
+          <div class="gallery-stats__numbers">
+            <div class="gallery-stats__item">
+              <span class="gallery-stats__number" id="photo-count">60</span>
+              <span class="gallery-stats__label">Photos</span>
+            </div>
+            <div class="gallery-stats__item">
+              <span class="gallery-stats__number">15+</span>
+              <span class="gallery-stats__label">Countries</span>
+            </div>
+            <div class="gallery-stats__item">
+              <span class="gallery-stats__number">5</span>
+              <span class="gallery-stats__label">Continents</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gallery Controls -->
+      <div class="gallery__controls" data-aos="fade-up" data-aos-delay="300">
+        <button class="gallery__random-btn" id="shuffle-btn">
+          <i class="fas fa-random"></i> Shuffle Photos
+        </button>
+      </div>
+
+      <!-- Loading indicator with progress bar -->
+      <div class="gallery__loading" id="loading-indicator">
+        <div class="gallery__loading-content">
+          <div class="gallery__loading-icon">📸</div>
+          <h3 class="gallery__loading-title">Loading Travel Gallery</h3>
+          <div class="gallery__loading-progress">
+            <div class="gallery__progress-bar">
+              <div class="gallery__progress-fill" id="progress-fill"></div>
+            </div>
+            <div class="gallery__progress-text">
+              <span id="progress-percentage">0%</span>
+              <span id="progress-count">0 / 60 photos</span>
+            </div>
+          </div>
+          <p class="gallery__loading-subtitle">Preparing your visual journey...</p>
+        </div>
+      </div>
+
+      <!-- Gallery Container -->
+      <div class="gallery__container" data-aos="fade-up" data-aos-delay="400">
+        <div class="gallery__grid" id="gallery-grid">
+          <!-- Images will be loaded here -->
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+  <script src="gallery.js"></script>
+</body>
+</html>
