@@ -347,6 +347,8 @@ function hexToRgb(hex) {
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOM Content Loaded - Script starting...'); // Debug log
+  
   // Initialize theme
   getThemeFromStorage();
   
@@ -384,6 +386,8 @@ document.addEventListener('DOMContentLoaded', () => {
       title.textContent = 'Notable Projects';
     }
   });
+  
+
 });
 
 // Use original scroll handler
