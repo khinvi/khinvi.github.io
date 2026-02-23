@@ -1,6 +1,6 @@
 COPYRIGHT LICENSE
 
-Copyright (c) 2025 Arnav Khinvasara
+Copyright (c) 2026 Arnav Khinvasara
 All rights reserved.
 
 The code, design, and content contained in this repository and website are the exclusive property of Arnav Khinvasara. No part of this website, including but not limited to the HTML, CSS, JavaScript, images, and other code, may be reproduced, distributed, or transmitted in any form or by any means, including photocopying, recording, or other electronic or mechanical methods, without the prior written permission of the copyright holder.
