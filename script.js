@@ -45,8 +45,8 @@ const getThemeFromStorage = () => {
   if (storedTheme && storedIcon) {
     addThemeClass(storedTheme, storedIcon);
   } else {
-    // Default to light theme if no theme in storage
-    setTheme('light', 'fa-moon');
+    // Default to dark theme if no theme in storage
+    setTheme('dark', 'fa-sun');
   }
 };
 
