@@ -40,7 +40,7 @@ const getThemeFromStorage = () => {
   if (storedTheme && storedIcon) {
     addThemeClass(storedTheme, storedIcon);
   } else {
-    setTheme('light', 'fa-moon');
+    setTheme('dark', 'fa-sun');
   }
 };
 
